@@ -7,11 +7,11 @@ config:
       name: Warm up
     - duration: 60
       arrivalRate: 10
-      rampTo: 20
       name: Ramp up load
     - duration: 60
-      arrivalRate: 20
+      arrivalRate: 15
       name: Sustained load
+
   headers:
     Content-Type: application/json
 scenarios:
