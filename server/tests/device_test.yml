@@ -1,0 +1,47 @@
+config:
+  target: "http://127.0.0.1:8000"
+
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      name: Warm up
+    - duration: 60
+      arrivalRate: 10
+      rampTo: 20
+      name: Ramp up load
+    - duration: 60
+      arrivalRate: 20
+      name: Sustained load
+  headers:
+    Content-Type: application/json
+scenarios:
+  - flow:
+    - post:
+        url: "/auth/login"
+        json:
+          email: "test.user@gmail.com"
+          password: "adminadmin"
+    - get:
+        url: "/device/get_all_devices"
+    - get:
+        url: "/device/get_device_by_id/5"
+    - get:
+        url: "/device/get_value_device_by_id/1"
+    - get:
+        url: "/device/get_last_value_device_by_id/1"
+    - get:
+        url: "/device/get_full_power/1"
+    - patch:
+        url: "/device/device_switch/6"
+    - post:
+        url: "/device/add_management_log"
+        json:
+          info: 'test'
+          action: 'test'
+          user_id: 2
+          device_id: 6
+    - get:
+        url: "/device/get_management_log"
+    - get:
+        url: "/device/get_accident_log"
+        
