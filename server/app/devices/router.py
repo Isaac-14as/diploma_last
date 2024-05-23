@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends
-from datetime import datetime, timedelta
 
 from app.devices.schemas import *
 from app.users.dependencies import get_current_user, is_admin_user
 from piccolo_db.tables import AccidentLog, Device, ManagementLog, ValueDevice
+from datetime import datetime, timedelta
 
 router = APIRouter(
     prefix="/device",
@@ -21,12 +21,12 @@ async def get_value_device_by_date_time(device_id: int, date: str, time_from: st
             (ValueDevice.device_id == device_id) &
             (ValueDevice.date_of_origin >= datetime_from) & 
             (ValueDevice.date_of_origin <= datetime_to)
-        )
+        ).order_by(ValueDevice.date_of_origin)
     return await ValueDevice.objects().where(
             (ValueDevice.device_id == device_id) &
             (ValueDevice.date_of_origin >= date) & 
             (ValueDevice.date_of_origin < (date + timedelta(days=1)))
-        )
+        ).order_by(ValueDevice.date_of_origin)
 
 
 @router.post('/add_device', dependencies=[Depends(is_admin_user)])
@@ -49,19 +49,24 @@ async def get_device_by_id(device_id: int):
 async def get_value_device_by_id(device_id: int, date: str = None, time_from: str = None, time_to: str = None):
     if date:
         return await get_value_device_by_date_time(device_id, date, time_from, time_to)
-    return await ValueDevice.select()
+    return await ValueDevice.objects().where(ValueDevice.device_id == device_id).order_by(ValueDevice.date_of_origin)
 
 
-@router.get('/get_last_value_device_by_id/{device_id}', response_model=SValueDeviceGet, dependencies=[Depends(get_current_user)])
-async def get_last_value_device_by_id(device_id: int):
-    return await ValueDevice.select().where(ValueDevice.device_id==device_id).order_by(ValueDevice.date_of_origin, ascending=False).first()
+@router.get('/get_last_value_device_all', response_model=list[SValueDeviceGet], dependencies=[Depends(get_current_user)])
+async def get_last_value_device_all():
+    device_ids = [1, 2, 3, 4]
+    res = []
+    for id in device_ids:
+        res.append(await ValueDevice.select().where(ValueDevice.device_id==id).order_by(ValueDevice.date_of_origin, ascending=False).first())
+    return res
+        
 
 
 @router.get('/get_full_power/{device_id}', response_model=list[SValueFullPower], dependencies=[Depends(get_current_user)])
 async def get_full_power(device_id: int, date: str = None, time_from = None, time_to = None):
     if date:
         return await get_value_device_by_date_time(device_id, date, time_from, time_to)
-    return await ValueDevice.select()
+    return await ValueDevice.select().order_by(ValueDevice.date_of_origin)
 
 
 @router.patch('/device_switch/{device_id}', dependencies=[Depends(get_current_user)])
@@ -81,23 +86,25 @@ async def add_management_log(management_log_info: SManagementAdd):
 
 @router.get('/get_management_log', dependencies=[Depends(get_current_user)])
 async def get_management_log(date: str = None, time_from: str = None, time_to: str = None):
+    user_col = [ManagementLog.user_id.email, ManagementLog.user_id.name, ManagementLog.user_id.role]
     if date and time_from and time_to:
         date = datetime.strptime(date, "%Y-%m-%d").date()
         time_from = datetime.strptime(time_from, "%H:%M:%S").time()
         time_to = datetime.strptime(time_to, "%H:%M:%S").time()
         datetime_from = datetime.combine(date, time_from)
         datetime_to = datetime.combine(date, time_to)
-        return await ManagementLog.select(ManagementLog.all_columns(), ManagementLog.user_id.all_columns(), ManagementLog.device_id.all_columns()).where(
+
+        return await ManagementLog.select(ManagementLog.all_columns(), user_col, ManagementLog.device_id.name).where(
             (ManagementLog.date_of_origin >= datetime_from) & 
             (ManagementLog.date_of_origin <= datetime_to)
-        )
+        ).order_by(ManagementLog.date_of_origin)
     if date:
         date = datetime.strptime(date, "%Y-%m-%d").date()
-        return await ManagementLog.select(ManagementLog.all_columns(), ManagementLog.user_id.all_columns(), ManagementLog.device_id.all_columns()).where(
+        return await ManagementLog.select(ManagementLog.all_columns(), user_col, ManagementLog.device_id.name).where(
             (ManagementLog.date_of_origin >= date) & 
             (ManagementLog.date_of_origin < (date + timedelta(days=1)))
-        )
-    return await ManagementLog.select(ManagementLog.all_columns(), ManagementLog.user_id.all_columns(), ManagementLog.device_id.all_columns())
+        ).order_by(ManagementLog.date_of_origin)
+    return await ManagementLog.select(ManagementLog.all_columns(), user_col, ManagementLog.device_id.name).order_by(ManagementLog.date_of_origin)
 
 
 @router.get('/get_accident_log', dependencies=[Depends(get_current_user)])
@@ -111,11 +118,11 @@ async def get_accident_log(date: str = None, time_from: str = None, time_to: str
         return await AccidentLog.select(AccidentLog.all_columns(), AccidentLog.device_id.all_columns()).where(
             (AccidentLog.date_of_origin >= datetime_from) & 
             (AccidentLog.date_of_origin <= datetime_to)
-        )
+        ).order_by(AccidentLog.date_of_origin)
     if date:
         date = datetime.strptime(date, "%Y-%m-%d").date()
         return await AccidentLog.select(AccidentLog.all_columns(), AccidentLog.device_id.all_columns()).where(
             (AccidentLog.date_of_origin >= date) & 
             (AccidentLog.date_of_origin < (date + timedelta(days=1)))
-        )
-    return await AccidentLog.select(AccidentLog.all_columns(), AccidentLog.device_id.all_columns())
+        ).order_by(AccidentLog.date_of_origin)
+    return await AccidentLog.select(AccidentLog.all_columns(), AccidentLog.device_id.all_columns()).order_by(AccidentLog.date_of_origin)

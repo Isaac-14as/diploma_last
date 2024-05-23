@@ -1,71 +1,24 @@
 import asyncio
-import datetime
 import random
-import math
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import DeclarativeBase, sessionmaker, Mapped, mapped_column, relationship
-from sqlalchemy import ForeignKey, delete, insert, select, update, text
-
-DB_HOST='localhost'
-DB_PORT='5432'
-DB_USER='postgres'
-DB_PASS='142227'
-DB_NAME='diploma_db'
+from piccolo.table import Table
+from piccolo.columns import Varchar, Timestamp, Float, Integer
 
 
-# DB_HOST='db'
-# DB_PORT=5432
-# DB_USER='postgres'
-# DB_PASS='postgres'
-# DB_NAME='app_db'
+class ValueDevice(Table):
+    full_power = Float()
+    active_power = Float()
+    reactive_power = Float()
+    voltage = Float()
+    amperage = Float()
+    power_factor = Float()
+    date_of_origin = Timestamp()
+    device_id = Integer()
 
+class AccidentLog(Table):
+    info = Varchar()
+    date_of_origin = Timestamp()
+    device_id = Integer()
 
-
-DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-
-
-async_engine = create_async_engine(DATABASE_URL)
-
-async_session_maker = sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
-
-
-class Base(DeclarativeBase):
-    pass
-
-class ValueDevice(Base):
-    __tablename__ = 'value_device'
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    full_power: Mapped[float | None]
-    active_power: Mapped[float | None]
-    reactive_power: Mapped[float | None]
-    voltage: Mapped[float | None]
-    amperage: Mapped[float | None]
-    power_factor: Mapped[float | None]
-    date_of_collection: Mapped[datetime.datetime] = mapped_column(server_default=text("TIMEZONE('utc', now())"))
-    device_id: Mapped[int]
-
-
-class AccidentLog(Base):
-    __tablename__ = 'accident_log'
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    info: Mapped[str]
-    date_of_origin: Mapped[datetime.datetime] = mapped_column(server_default=text("TIMEZONE('utc', now())"))
-    device_id: Mapped[int]
-
-
-async def add_value(data):
-    async with async_session_maker() as session:
-        query = insert(ValueDevice).values(**data)
-        await session.execute(query)
-        await session.commit()
-
-async def add_accident(data):
-    async with async_session_maker() as session:
-        query = insert(AccidentLog).values(**data)
-        await session.execute(query)
-        await session.commit()
 
 
 async def print_numbers():
@@ -94,16 +47,16 @@ async def print_numbers():
                     'device_id': i + 1
                 }
                 accident_count[i] = 0
-                await add_accident(data_accident)
+                await AccidentLog(**data_accident).save()
             elif voltage[i] // 1000 > 240:
                 data_accident = {
                     'info': f"Зафиксировано напряжение больше 240 кВ (S = {data['full_power']} МВА, P = {data['active_power']} МВт, Q = {data['reactive_power']} МВар, U = {data['voltage']} А, I = {data['amperage']} А, cos(φ) = {data['power_factor']})",
                     'device_id': i + 1
                 }
-                await add_accident(data_accident)
+                await AccidentLog(**data_accident).save()
                 accident_count[i] = 0
 
-            await add_value(data)
+            await ValueDevice(**data).save()
         await asyncio.sleep(3)
 
 async def main():

@@ -16,5 +16,5 @@ DB = PostgresEngine(config={
 
 
 APP_REGISTRY = AppRegistry(
-    apps=["piccolo_db.piccolo_app"]
+    apps=["piccolo_db.piccolo_app", "piccolo_admin.piccolo_app"]
 )

@@ -5,43 +5,43 @@ config:
     - duration: 60
       arrivalRate: 5
       name: Warm up
-    - duration: 60
-      arrivalRate: 10
+    - duration: 90
+      arrivalRate: 8
       name: Ramp up load
-    - duration: 60
-      arrivalRate: 15
-      name: Sustained load
-
   headers:
     Content-Type: application/json
 scenarios:
   - flow:
-    - post:
-        url: "/auth/login"
-        json:
-          email: "test.user@gmail.com"
-          password: "adminadmin"
-    - get:
-        url: "/device/get_all_devices"
-    - get:
-        url: "/device/get_device_by_id/5"
-    - get:
-        url: "/device/get_value_device_by_id/1"
-    - get:
-        url: "/device/get_last_value_device_by_id/1"
-    - get:
-        url: "/device/get_full_power/1"
-    - patch:
-        url: "/device/device_switch/6"
-    - post:
-        url: "/device/add_management_log"
-        json:
-          info: 'test'
-          action: 'test'
-          user_id: 2
-          device_id: 6
-    - get:
-        url: "/device/get_management_log"
-    - get:
-        url: "/device/get_accident_log"
-        
+      - post:
+          url: "/auth/login"
+          json:
+            email: "admin@admin.com"
+            password: "adminadmin"
+      - get:
+          url: "/device/get_all_devices"
+      - get:
+          url: "/device/get_device_by_id/5"
+      - get:
+          url: "/device/get_value_device_by_id/1"
+      - get:
+          url: "/device/get_last_value_device_all"
+      - get:
+          url: "/device/get_full_power/1"
+      - patch:
+          url: "/device/device_switch/6"
+      - get:
+          url: "/device/get_management_log"
+      - get:
+          url: "/device/get_accident_log"
+      - get:
+          url: "/auth/get_me"
+      - get:
+          url: "/auth/get_all_users"
+      - patch:
+          url: "/auth/change_user_by_id/34"
+          json:
+            name: "Еланский Дмитрий Олегович"
+            role: "staff"
+      - patch:
+          url: "/device/device_switch/5"
+# config:

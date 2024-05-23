@@ -3,34 +3,32 @@ config:
 
   phases:
     - duration: 60
-      arrivalRate: 20
-      name: Sustained load
+      arrivalRate: 5
+      name: Warm up
+    - duration: 90
+      arrivalRate: 10
+      name: Ramp up load
+    - duration: 90
+      arrivalRate: 10
+      name: Ramp up load
   headers:
     Content-Type: application/json
 scenarios:
   - flow:
-    - post:
-        url: "/auth/login"
-        json:
-          email: "test.user@gmail.com"
-          password: "adminadmin"
-    - get:
-        url: "/auth/get_me"
-    - get:
-        url: "/auth/get_all_users"
-    - patch:
-        url: "/auth/change_user_by_id/3"
-        json:
-          name: "Еланский Дмитрий Олегович"
-          role: "staff"
-
-
-
-
-
-
-
-
+      - post:
+          url: "/auth/login"
+          json:
+            email: "admin@admin.com"
+            password: "adminadmin"
+      - get:
+          url: "/auth/get_me"
+      - get:
+          url: "/auth/get_all_users"
+      - patch:
+          url: "/auth/change_user_by_id/34"
+          json:
+            name: "Еланский Дмитрий Олегович"
+            role: "staff"
 # config:
 #   target: "http://localhost:8000"
 #   phases:
@@ -60,21 +58,19 @@ scenarios:
 #       - post:
 #           url: "/auth/logout"
 
+# - get:
+#     url: "/auth/me"
+#     headers:
+#       Authorization: "{{ token }}"
 
-
-      # - get:
-      #     url: "/auth/me"
-      #     headers:
-      #       Authorization: "{{ token }}"
-
-  # - name: Products List scenario
-  #   flow:
-  #     - get:
-  #         url: '/api/ProductsList'
-  # - name: Provider scenario
-  #   flow:
-  #     - get:
-  #         url: '/api/provider'
+# - name: Products List scenario
+#   flow:
+#     - get:
+#         url: '/api/ProductsList'
+# - name: Provider scenario
+#   flow:
+#     - get:
+#         url: '/api/provider'
 # name: Device scenario
 # flow:
 #   get:

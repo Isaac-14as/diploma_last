@@ -21,6 +21,7 @@ class SValueDeviceGet(BaseModel):
     amperage: float
     power_factor: float
     date_of_origin: datetime.datetime
+    device_id: int
 
 
 class SValueFullPower(BaseModel):
@@ -35,8 +36,10 @@ class SManagementAdd(BaseModel):
     device_id: int
 
 
-class SManagementGet(SManagementAdd):
-    id: int
-    users: SUserGet
-    device: SDeviceGet
-    date_of_origin: datetime.datetime
+# class SManagementLogGet(SManagementAdd):
+#     id: int
+#     info: str
+#     action: str
+#     date_of_origin: datetime.datetime
+
+    

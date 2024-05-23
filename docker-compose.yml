@@ -2,13 +2,17 @@ version: "3.8"
 services:
   db:
     image: postgres:latest
+    command: -c 'max_connections=500'
     env_file:
       - ./server/.env-non-dev
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./db/init.sql:/docker-entrypoint-initdb.d/db_init.sql
+    stdin_open: true
     ports:
-      - 5434:5432
+      - 5433:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   server:
     image: server_image
@@ -20,6 +24,28 @@ services:
     ports:
       - 8000:8000
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+
+  client:
+    image: client_image
+    build:
+      context: ./client/app/
+    env_file:
+      - ./server/.env-non-dev
+    ports:
+      - 9000:9000
+    depends_on:
+      - server
+
+  generator:
+    image: generator_image
+    build:
+      context: ./generator_main/
+    env_file:
+      - ./server/.env-non-dev
+    depends_on:
+      db:
+        condition: service_healthy
 volumes:
   postgres-data:
