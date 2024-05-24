@@ -134,6 +134,31 @@ const getLogDateTime = async () => {
   }
 }
 
+const getReporting = async () => {
+  const device_id = window.location.toString().split('/').reverse()[0]
+  try {
+    const { data } = await axios({
+      method: 'get',
+      url:
+        `http://` +
+        API_host +
+        `/device/get_reporting_device_value/${device_id}?date=${date_value.value}&time_from=${time_1_value.value}&time_to=${time_2_value.value}`,
+      headers: { Authorization: localStorage.access_token },
+      responseType: 'blob'
+    })
+
+    const url = window.URL.createObjectURL(new Blob([data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', 'отчет.xlsx') // Указываем имя файла
+    document.body.appendChild(link)
+    link.click()
+    return data
+  } catch (err) {
+    console.log(err)
+  }
+}
+
 watch([() => date_value.value, () => time_1_value.value, () => time_2_value.value], getLogDateTime)
 </script>
 
@@ -181,6 +206,7 @@ watch([() => date_value.value, () => time_1_value.value, () => time_2_value.valu
       <div class="left_header">
         <input class="search" type="text" @input="onChangeSearchInput" v-model="search_text" />
         <div class="update" @click="getValueDevice">Обновить</div>
+        <button class="update" @click="getReporting">Отчет</button>
       </div>
     </div>
 
@@ -240,6 +266,8 @@ watch([() => date_value.value, () => time_1_value.value, () => time_2_value.valu
   cursor: pointer;
   display: flex;
   align-items: center;
+  margin-left: 10px;
+  margin-right: 10px;
 }
 
 .update:hover {

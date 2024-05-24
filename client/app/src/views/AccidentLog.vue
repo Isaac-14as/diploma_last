@@ -2,7 +2,7 @@
 import axios from 'axios'
 import { ref, onMounted, watch } from 'vue'
 
-var API_port = import.meta.env.VITE_API_ENDPOINT
+var API_host = import.meta.env.VITE_API_ENDPOINT
 
 const log = ref([])
 const main_log = ref([])
@@ -11,10 +11,11 @@ const getLog = async () => {
   date_value.value = null
   time_1_value.value = '00:00:00'
   time_2_value.value = '23:59:59'
+  device_value.value = null
   try {
     const { data } = await axios({
       method: 'get',
-      url: `http://` + API_port + `/device/get_accident_log`,
+      url: `http://` + API_host + `/device/get_accident_log`,
       headers: { Authorization: localStorage.access_token }
     })
     log.value = data.reverse()
@@ -58,13 +59,14 @@ const onChangeSearchInput = async () => {
 const date_value = ref(null)
 const time_1_value = ref('00:00:00')
 const time_2_value = ref('23:59:59')
+const device_value = ref(null)
 const getLogDateTime = async () => {
-  if (date_value.value && time_1_value.value && time_2_value.value) {
+  if ((date_value.value && time_1_value.value && time_2_value.value) || device_value.value) {
     try {
       const { data } = await axios.get(
         `http://` +
-          API_port +
-          `/device/get_accident_log?date=${date_value.value}&time_from=${time_1_value.value}&time_to=${time_2_value.value}`,
+          API_host +
+          `/device/get_accident_log?device_id=${device_value.value}&date=${date_value.value}&time_from=${time_1_value.value}&time_to=${time_2_value.value}`,
         {
           headers: { Authorization: localStorage.access_token }
         }
@@ -83,13 +85,56 @@ const getLogDateTime = async () => {
   }
 }
 
-watch([() => date_value.value, () => time_1_value.value, () => time_2_value.value], getLogDateTime)
+const getReporting = async () => {
+  const params = {
+    device_id: device_value.value,
+    date: date_value.value,
+    time_from: time_1_value.value,
+    time_to: time_2_value.value
+  }
+  try {
+    const { data } = await axios({
+      method: 'get',
+      url: `http://` + API_host + `/device/get_reporting_accident_log`,
+      headers: { Authorization: localStorage.access_token },
+      responseType: 'blob',
+      params
+    })
+    const url = window.URL.createObjectURL(new Blob([data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', 'отчет.xlsx') // Указываем имя файла
+    document.body.appendChild(link)
+    link.click()
+    return data
+  } catch (err) {
+    console.log(err)
+  }
+}
+
+watch(
+  [
+    () => date_value.value,
+    () => time_1_value.value,
+    () => time_2_value.value,
+    () => device_value.value
+  ],
+  getLogDateTime
+)
 </script>
 
 <template>
   <div class="list_main">
+    <div class="title">Журнал аварийных ситуаций</div>
     <div class="title_search">
-      <div class="title">Журнал аварийных ситуаций</div>
+      <label for="mySelect">Устройство:</label>
+      <select class="input_input select_device" id="mySelect" v-model="device_value">
+        <option value="null">--Выберете--</option>
+        <option value="1">Трансформатор 1</option>
+        <option value="2">Трансформатор 2</option>
+        <option value="3">Трансформатор 3</option>
+        <option value="4">Трансформатор 4</option>
+      </select>
       <div class="datetime_input">
         <div class="input_box">
           <label for="time-date">Дата:</label>
@@ -130,6 +175,7 @@ watch([() => date_value.value, () => time_1_value.value, () => time_2_value.valu
       <div class="left_header">
         <input class="search" type="text" @input="onChangeSearchInput" v-model="search_text" />
         <div class="update" @click="getLog">Обновить</div>
+        <button class="update" @click="getReporting">Отчет</button>
       </div>
     </div>
 
@@ -162,6 +208,9 @@ watch([() => date_value.value, () => time_1_value.value, () => time_2_value.valu
 </template>
 
 <style scoped>
+.select_device {
+  margin-right: 10px;
+}
 .h {
   height: 30px;
   display: flex;
@@ -188,6 +237,7 @@ watch([() => date_value.value, () => time_1_value.value, () => time_2_value.valu
   cursor: pointer;
   display: flex;
   align-items: center;
+  margin-left: 10px;
 }
 
 .update:hover {
