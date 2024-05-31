@@ -6,6 +6,7 @@ var API_host = import.meta.env.VITE_API_ENDPOINT
 
 const log = ref([])
 const main_log = ref([])
+const format = ref('')
 
 const getLog = async () => {
   date_value.value = null
@@ -122,7 +123,10 @@ const getReporting = async () => {
   try {
     const { data } = await axios({
       method: 'get',
-      url: `http://` + API_host + `/device/get_reporting_management_log`,
+      url:
+        `http://` +
+        API_host +
+        `/device/get_reporting_management_log/${format.value}?date=${date_value.value}&time_from=${time_1_value.value}&time_to=${time_2_value.value}`,
       headers: { Authorization: localStorage.access_token },
       responseType: 'blob',
       params
@@ -130,9 +134,10 @@ const getReporting = async () => {
     const url = window.URL.createObjectURL(new Blob([data]))
     const link = document.createElement('a')
     link.href = url
-    link.setAttribute('download', 'отчет.xlsx') // Указываем имя файла
+    link.setAttribute('download', `отчет.${format.value}`) // Указываем имя файла
     document.body.appendChild(link)
     link.click()
+    format.value = ''
     return data
   } catch (err) {
     console.log(err)
@@ -140,6 +145,7 @@ const getReporting = async () => {
 }
 
 watch([() => date_value.value, () => time_1_value.value, () => time_2_value.value], getLogDateTime)
+watch([() => format.value], getReporting)
 </script>
 
 <template>
@@ -186,7 +192,12 @@ watch([() => date_value.value, () => time_1_value.value, () => time_2_value.valu
       <div class="left_header">
         <input class="search" type="text" @input="onChangeSearchInput" v-model="search_text" />
         <div class="update" @click="getLog">Обновить</div>
-        <button class="update" @click="getReporting">Отчет</button>
+        <select class="input_input" id="mySelect" v-model="format">
+          <option value="">--Отчет--</option>
+          <option value="xlsx">xlsx</option>
+          <option value="csv">csv</option>
+          <option value="docx">docx</option>
+        </select>
       </div>
     </div>
 

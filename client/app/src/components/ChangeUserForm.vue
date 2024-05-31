@@ -84,7 +84,17 @@ watch([() => dirtyFlag.name, () => change_user.name], validationForm)
           value="staff"
           v-model="change_user.role"
         />
-        <label class="role_type" for="staff">Сотрудник</label>
+        <label class="role_type" for="staff">Диспетчер</label>
+      </div>
+      <div>
+        <input
+          class="radio_input"
+          type="radio"
+          id="staff"
+          value="staff"
+          v-model="change_user.role"
+        />
+        <label class="role_type" for="staff">Помощник диспетчера</label>
       </div>
       <div>
         <input

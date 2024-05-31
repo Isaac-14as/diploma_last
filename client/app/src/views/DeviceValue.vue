@@ -7,6 +7,7 @@ var API_host = import.meta.env.VITE_API_ENDPOINT
 const device_value = ref([])
 const main_device_value = ref([])
 const device_name = ref('')
+const format = ref('')
 
 const getValueDevice = async () => {
   date_value.value = null
@@ -142,7 +143,7 @@ const getReporting = async () => {
       url:
         `http://` +
         API_host +
-        `/device/get_reporting_device_value/${device_id}?date=${date_value.value}&time_from=${time_1_value.value}&time_to=${time_2_value.value}`,
+        `/device/get_reporting_device_value/${device_id}/${format.value}?date=${date_value.value}&time_from=${time_1_value.value}&time_to=${time_2_value.value}`,
       headers: { Authorization: localStorage.access_token },
       responseType: 'blob'
     })
@@ -150,9 +151,10 @@ const getReporting = async () => {
     const url = window.URL.createObjectURL(new Blob([data]))
     const link = document.createElement('a')
     link.href = url
-    link.setAttribute('download', 'отчет.xlsx') // Указываем имя файла
+    link.setAttribute('download', `отчет.${format.value}`) // Указываем имя файла
     document.body.appendChild(link)
     link.click()
+    format.value = ''
     return data
   } catch (err) {
     console.log(err)
@@ -160,6 +162,7 @@ const getReporting = async () => {
 }
 
 watch([() => date_value.value, () => time_1_value.value, () => time_2_value.value], getLogDateTime)
+watch([() => format.value], getReporting)
 </script>
 
 <template>
@@ -206,7 +209,12 @@ watch([() => date_value.value, () => time_1_value.value, () => time_2_value.valu
       <div class="left_header">
         <input class="search" type="text" @input="onChangeSearchInput" v-model="search_text" />
         <div class="update" @click="getValueDevice">Обновить</div>
-        <button class="update" @click="getReporting">Отчет</button>
+        <select class="input_input" id="mySelect" v-model="format">
+          <option value="">--Отчет--</option>
+          <option value="xlsx">xlsx</option>
+          <option value="csv">csv</option>
+          <option value="docx">docx</option>
+        </select>
       </div>
     </div>
 

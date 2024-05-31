@@ -136,7 +136,17 @@ const createUser = async () => {
       <label class="label_name label_role">Права доступа</label>
       <div>
         <input class="radio_input" type="radio" id="staff" value="staff" v-model="user.role" />
-        <label class="role_type" for="staff">Сотрудник</label>
+        <label class="role_type" for="staff">Диспетчер</label>
+      </div>
+      <div>
+        <input
+          class="radio_input"
+          type="radio"
+          id="assistant"
+          value="assistant"
+          v-model="user.role"
+        />
+        <label class="role_type" for="assistant">Помощник диспетчера</label>
       </div>
       <div>
         <input class="radio_input" type="radio" id="admin" value="admin" v-model="user.role" />

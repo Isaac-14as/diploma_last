@@ -1,6 +1,10 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from fastapi.responses import FileResponse
 from openpyxl import Workbook
+import csv
+from io import StringIO, BytesIO
+from docx import Document
+from docx.shared import Inches
 
 from app.devices.schemas import *
 from app.users.dependencies import get_current_user, is_admin_user
@@ -83,6 +87,8 @@ async def add_management_log(management_log_info: SManagementAdd):
 
 @router.get('/get_management_log', dependencies=[Depends(get_current_user)])
 async def get_management_log(date: str = None, time_from: str = None, time_to: str = None):
+    if date == 'null':
+        date = None
     user_col = [ManagementLog.user_id.email, ManagementLog.user_id.name, ManagementLog.user_id.role]
     if date and time_from and time_to:
         date = datetime.strptime(date, "%Y-%m-%d").date()
@@ -106,13 +112,12 @@ async def get_management_log(date: str = None, time_from: str = None, time_to: s
 
 @router.get('/get_accident_log/', dependencies=[Depends(get_current_user)])
 async def get_accident_log(device_id: int | str = None, date: str = None, time_from: str = None, time_to: str = None):
-    print(device_id)
     if device_id == 'null': 
         device_id = None
-    elif device_id:
+    if device_id :
         device_id = int(device_id)
     if date == 'null':
-        date = None
+        date = None  
     if date and time_from and time_to:
         date = datetime.strptime(date, "%Y-%m-%d").date()
         time_from = datetime.strptime(time_from, "%H:%M:%S").time()
@@ -135,47 +140,100 @@ async def get_accident_log(device_id: int | str = None, date: str = None, time_f
     return await AccidentLog.select(AccidentLog.all_columns(), AccidentLog.device_id.all_columns()).order_by(AccidentLog.date_of_origin)
 
 
-@router.get("/get_reporting_device_value/{device_id}")
-async def get_reporting_device_value(device_id: int, date: str = None, time_from: str = None, time_to: str = None):
+@router.get("/get_reporting_device_value/{device_id}/{format}")
+async def get_reporting_device_value(device_id: int, format: str, date: str = None, time_from: str = None, time_to: str = None):
     device_name = await Device.select(Device.name).where(Device.id==device_id).first()
     device_name = device_name['name']
     if date and (date != 'null'):
         res = await get_value_device_by_date_time(device_id, date, time_from, time_to)
     else:
         res = await ValueDevice.objects().where(ValueDevice.device_id==device_id)
-    wb = Workbook()
-    ws = wb.active
-    ws.append(['Полная мощность', 'Активная мощность', 'Реактивная мощность', 'Напряжение', 'Сила тока', 'Коэффициент мощности', 'Дата/время'])
-    ws.append([str(i).split(r'"')[1] for i in ValueDevice.all_columns()][1:-1])
-    ws.append(['S[МВА]', 'P[МВт]', 'Q[МВАр]', 'U[кВ]', 'I[A]', 'cosφ'])
-    for obj in res:
-        ws.append([obj.full_power, obj.active_power, obj.reactive_power, obj.voltage, obj.amperage, obj.power_factor, obj.date_of_origin])
-    filename =f'report.xlsx'
-    wb.save(filename)
-    return FileResponse(filename, filename=filename)
+    res = list(map(lambda x: x.to_dict(), res))
+    if format == 'xlsx':
+        wb = Workbook()
+        ws = wb.active
+        ws.append(['Полная мощность', 'Активная мощность', 'Реактивная мощность', 'Напряжение', 'Сила тока', 'Коэффициент мощности', 'Дата/время'])
+        ws.append([str(i).split(r'"')[1] for i in ValueDevice.all_columns()][1:-1])
+        ws.append(['S[МВА]', 'P[МВт]', 'Q[МВАр]', 'U[кВ]', 'I[A]', 'cosφ'])
+        for obj in res:
+            ws.append([obj['full_power'], obj['active_power'], obj['reactive_power'], obj['voltage'], obj['amperage'], obj['power_factor'], obj['date_of_origin']])
+        filename =f'report.xlsx'
+        wb.save(filename)
+        return FileResponse(filename, filename=filename)
+    if format == 'csv':
+        return csv_create(res)
+    if format == 'docx':
+        return docs_create(res)
 
 
-@router.get("/get_reporting_accident_log")
-async def get_reporting_accident_log(device_id: int | str = None, date: str = None, time_from: str = None, time_to: str = None):
+
+
+@router.get("/get_reporting_accident_log/{format}")
+async def get_reporting_accident_log(format: str, device_id: int | str = None, date: str = None, time_from: str = None, time_to: str = None):
     res = await get_accident_log(device_id, date, time_from, time_to)
-    wb = Workbook()
-    ws = wb.active
-    ws.append(['Устройство', 'Сообщение', 'Дата/время'])
-    for obj in res:
-        ws.append([obj['device_id.name'], obj['info'], obj['date_of_origin']])
-    filename =f'report.xlsx'
-    wb.save(filename)
-    return FileResponse(filename, filename=filename)
+    if format == 'xlsx':
+        wb = Workbook()
+        ws = wb.active
+        ws.append(['Устройство', 'Сообщение', 'Дата/время'])
+        for obj in res:
+            ws.append([obj['device_id.name'], obj['info'], obj['date_of_origin']])
+        filename =f'report.xlsx'
+        wb.save(filename)
+        return FileResponse(filename, filename=filename)
+    if format == 'csv':
+        return csv_create(res)
+    if format == 'docx':
+        return docs_create(res)
 
 
-@router.get("/get_reporting_management_log")
-async def get_reporting_management_log(date: str = None, time_from: str = None, time_to: str = None):
+@router.get("/get_reporting_management_log/{format}")
+async def get_reporting_management_log(format: str, date: str = None, time_from: str = None, time_to: str = None):
     res = await get_management_log(date, time_from, time_to)
-    wb = Workbook()
-    ws = wb.active
-    ws.append(['Устройство', 'Действие', 'Причина', 'Сотрудник', 'Дата/время'])
-    for obj in res:
-        ws.append([obj['device_id.name'], obj['action'], obj['info'], obj['user_id.name'] + '\n' + obj['user_id.email'] + '\n' + obj['user_id.role'], obj['date_of_origin']])
-    filename =f'report.xlsx'
-    wb.save(filename)
-    return FileResponse(filename, filename=filename)
+    if format == 'xlsx':
+        wb = Workbook()
+        ws = wb.active
+        ws.append(['Устройство', 'Действие', 'Причина', 'Сотрудник', 'Дата/время'])
+        for obj in res:
+            ws.append([obj['device_id.name'], obj['action'], obj['info'], obj['user_id.name'] + '\n' + obj['user_id.email'] + '\n' + obj['user_id.role'], obj['date_of_origin']])
+        filename =f'report.xlsx'
+        wb.save(filename)
+        return FileResponse(filename, filename=filename)
+    if format == 'csv':
+        return csv_create(res)
+    if format == 'docx':
+        return docs_create(res)
+    
+def csv_create(res):
+    csv_data = StringIO()
+    fieldnames = res[0].keys()
+    writer = csv.DictWriter(csv_data, fieldnames=fieldnames)
+    writer.writeheader()
+    writer.writerows(res)
+    csv_data.seek(0)
+    response = Response(content=csv_data.getvalue(), media_type="text/csv")
+    response.headers["Content-Disposition"] = "attachment; filename=report.csv"
+    return response
+
+
+    
+def docs_create(res):
+    doc = Document()
+    table = doc.add_table(rows=1, cols=len(res[0]))
+    header_cells = table.rows[0].cells
+    for i in range(len(res[0])):
+        header_cells[i].text = list(res[0].keys())[i]
+    for i in range(1, len(res)):
+        row_cells = table.add_row().cells
+        for j in range(len(res[0])):
+            row_cells[j].text = str(res[i][list(res[0].keys())[j]])
+    file = BytesIO()
+    doc.save(file)
+    file.seek(0)
+    response = Response(
+        file.read(),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={
+            "Content-Disposition": "attachment; filename=table.docx"
+        }
+    )
+    return response
