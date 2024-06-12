@@ -107,7 +107,7 @@ onMounted(() => createChart())
       <div class="input_box">
         <label for="mySelect">Устройство:</label>
         <select class="input_input" id="mySelect" v-model="device_value">
-          <option value="">--Выберете--</option>
+          <option value="">--Выберите--</option>
           <option value="1">Трансформатор 1</option>
           <option value="2">Трансформатор 2</option>
           <option value="3">Трансформатор 3</option>

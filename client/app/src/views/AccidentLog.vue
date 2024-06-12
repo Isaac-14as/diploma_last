@@ -135,7 +135,7 @@ watch([() => format.value], getReporting)
     <div class="title_search">
       <label for="mySelect">Устройство:</label>
       <select class="input_input select_device" id="mySelect" v-model="device_value">
-        <option value="null">--Выберете--</option>
+        <option value="null">--Выберите--</option>
         <option value="1">Трансформатор 1</option>
         <option value="2">Трансформатор 2</option>
         <option value="3">Трансформатор 3</option>
